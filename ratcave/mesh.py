@@ -14,7 +14,7 @@ from . import mixins, shader, texture
 
 class MeshData(object):
 
-    def __init__(self, vertices, face_indices, normals, texcoords=None):
+    def __init__(self, vertices, normals, texcoords=None, face_indices=None):
         """
         Collects all vertex data for rendering in 3D graphics packages.
 
@@ -29,11 +29,10 @@ class MeshData(object):
         """
         # CPU Data
         self.vertices = np.array(vertices, dtype=float).reshape((-1, 3))
-        self.face_indices = np.array(face_indices, dtype=np.uint16).reshape((-1, 1))
+        self.face_indices = np.array(face_indices, dtype=np.uint16).reshape((-1, 1)) if not isinstance(face_indices, type(None)) else None
         self.normals = np.array(normals, dtype=float).reshape((-1, 3))
-        self.texcoords = np.array(texcoords, dtype=float).reshape((-1, 2))
+        self.texcoords = np.array(texcoords, dtype=float).reshape((-1, 2)) if not isinstance(texcoords, type(None)) else None
         assert self.vertices.shape[0] == self.normals.shape[0]
-        assert self.vertices.shape[0] == self.texcoords.shape[0]
 
         self.is_loaded = False
         self.glbuffer = False
@@ -42,7 +41,10 @@ class MeshData(object):
         self.reindex()
         self.glbuffer = ugl.VAO(indices=self.face_indices)
         with self.glbuffer:
-            for loc, verts in enumerate([self.vertices, self.normals, self.texcoords]):
+            coordsset = [self.vertices, self.normals]
+            if not isinstance(self.texcoords, type(None)):
+                coordsset.append(self.texcoords)
+            for loc, verts in enumerate(coordsset):
                 self.glbuffer.assign_vertex_attrib_location(ugl.VBO(verts), loc)
         self.is_loaded = True
 
@@ -61,7 +63,10 @@ class MeshData(object):
             dtype = array.dtype.descr * array.shape[1]
             return array.view(dtype)
 
-        all_vert_combs = to_joined_struct_array_view(self.vertices, self.normals, self.texcoords)
+        coordsset = [self.vertices, self.normals]
+        if not isinstance(self.texcoords, type(None)):
+            coordsset.append(self.texcoords)
+        all_vert_combs = to_joined_struct_array_view(*coordsset)
         unique_combs = np.unique(all_vert_combs)
         unique_vert_combs_sorted = np.sort(unique_combs)
 
@@ -70,7 +75,9 @@ class MeshData(object):
         unique_combs_array = unique_combs.view(float).reshape((unique_combs.shape[0], -1))
         self.vertices = unique_combs_array[:, :3]
         self.normals = unique_combs_array[:, 3:6]
-        self.texcoords = unique_combs_array[:, 6:]
+        if not isinstance(self.texcoords, type(None)):
+            self.texcoords = unique_combs_array[:, 6:]
+
 
 class Material(object):
 

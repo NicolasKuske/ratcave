@@ -117,7 +117,7 @@ class WavefrontReader(object):
         norms = normals[face_indices[:, 2]] if np.any(normals) else None
 
         # Build MeshData object
-        meshdata = MeshData(verts, inds, norms, textUVs)
+        meshdata = MeshData(vertices=verts, normals=norms, texcoords=textUVs)#, face_indices=inds)
         return meshdata
 
 
